@@ -127,6 +127,22 @@ function itemInput(s: Session, values: Record<string, string | boolean | undefin
   return input as inv.ItemInput & { name: string };
 }
 
+/**
+ * Splits "council tax 2026 180" into a name and a trailing number, but only when the whole
+ * text isn't itself a name: "paid council tax 2026" pays the bill called "Council tax 2026"
+ * (rather than paying "Council tax" 2,026), and "use iPhone 15" uses one "iPhone 15".
+ */
+function splitTrailing(words: string[], names: string[], looksLikeNumber: (w: string) => boolean): { name: string; number?: string } {
+  const whole = words.join(" ");
+  const last = words.at(-1);
+  if (words.length < 2 || !last || !looksLikeNumber(last) || names.some((n) => n.toLowerCase() === whole.trim().toLowerCase())) {
+    return { name: whole };
+  }
+  return { name: words.slice(0, -1).join(" "), number: last };
+}
+
+const isQuantity = (w: string) => /^\d+(\.\d+)?$/.test(w);
+
 function itemLine(item: Item): string[] {
   const qty = item.minimum !== undefined || item.quantity !== 1 ? `${item.quantity}${item.unit ? " " + item.unit : ""}` : "";
   return [item.name, item.location ?? "", qty, item.price ? formatMoney(item.price) : ""];
@@ -361,10 +377,9 @@ const commands: Record<string, Handler> = {
 
   use(s, args) {
     const { positionals } = opts(args, {});
-    const last = positionals.at(-1);
-    const hasAmount = positionals.length > 1 && /^\d+(\.\d+)?$/.test(last!);
-    const target = inv.findItem(s.data, (hasAmount ? positionals.slice(0, -1) : positionals).join(" "));
-    inv.use(target, hasAmount ? Number(last) : 1);
+    const { name, number } = splitTrailing(positionals, inv.current(s.data).map((i) => i.name), isQuantity);
+    const target = inv.findItem(s.data, name);
+    inv.use(target, number !== undefined ? Number(number) : 1);
     s.dirty = true;
     const low = target.minimum !== undefined && target.quantity < target.minimum;
     s.ctx.out(`${target.name}: ${target.quantity}${target.unit ? " " + target.unit : ""} left${low ? " (on the shopping list)" : ""}`);
@@ -373,9 +388,10 @@ const commands: Record<string, Handler> = {
 
   buy(s, args) {
     const { positionals } = opts(args, {});
-    const amount = num(positionals.at(-1), "the number bought");
-    if (positionals.length < 2 || amount === undefined) throw new UsageError("usage: hearth buy NAME N");
-    const target = inv.findItem(s.data, positionals.slice(0, -1).join(" "));
+    const { name, number } = splitTrailing(positionals, inv.current(s.data).map((i) => i.name), isQuantity);
+    const amount = num(number, "the number bought");
+    if (amount === undefined) throw new UsageError("usage: hearth buy NAME N");
+    const target = inv.findItem(s.data, name);
     inv.restock(target, amount);
     s.dirty = true;
     s.ctx.out(`${target.name}: now ${target.quantity}${target.unit ? " " + target.unit : ""}`);
@@ -384,9 +400,10 @@ const commands: Record<string, Handler> = {
 
   count(s, args) {
     const { positionals } = opts(args, {});
-    const amount = num(positionals.at(-1), "the count");
-    if (positionals.length < 2 || amount === undefined) throw new UsageError("usage: hearth count NAME N");
-    const target = inv.findItem(s.data, positionals.slice(0, -1).join(" "));
+    const { name, number } = splitTrailing(positionals, inv.current(s.data).map((i) => i.name), isQuantity);
+    const amount = num(number, "the count");
+    if (amount === undefined) throw new UsageError("usage: hearth count NAME N");
+    const target = inv.findItem(s.data, name);
     inv.applyChanges(target, { quantity: amount });
     s.dirty = true;
     s.ctx.out(`${target.name}: ${target.quantity}${target.unit ? " " + target.unit : ""}`);
@@ -474,14 +491,9 @@ const commands: Record<string, Handler> = {
 
   paid(s, args) {
     const { values, positionals } = opts(args, { date: { type: "string" }, due: { type: "string" }, note: { type: "string" } });
-    const last = positionals.at(-1) ?? "";
-    let amount: ReturnType<typeof parseMoney> | undefined;
-    let nameParts = positionals;
-    if (positionals.length > 1 && /\d/.test(last)) {
-      amount = parseMoney(last, s.data.settings.currency);
-      nameParts = positionals.slice(0, -1);
-    }
-    const b = bills.findBill(s.data, nameParts.join(" "));
+    const { name, number } = splitTrailing(positionals, s.data.bills.map((b) => b.name), (w) => /\d/.test(w));
+    const amount = number !== undefined ? parseMoney(number, s.data.settings.currency) : undefined;
+    const b = bills.findBill(s.data, name);
     const options: bills.PayOptions = { paid: values.date ? parseDate(values.date, s.today) : s.today };
     if (amount) options.amount = amount;
     if (values.due) options.due = parseDate(values.due, s.today);

@@ -156,3 +156,23 @@ test("settings", async () => {
   assert.equal(await t.run("settings", "lookaheadDays", "0"), 2);
   assert.equal(await t.run("settings", "colour", "blue"), 2);
 });
+
+test("names that end in a number aren't mistaken for an amount", async () => {
+  const t = await home();
+  await t.run("bill", "add", "Council tax 2026", "--every", "monthly on the 1st", "--amount", "180", "--start", "2026-12-01");
+  await t.run("paid", "council", "tax", "2026");
+  assert.match(t.text(), /paid Council tax 2026: \$180\.00 for 2026-12-01/);
+  t.on("2026-12-20");
+  await t.run("paid", "council", "tax", "2026", "175.50");
+  assert.match(t.text(), /paid Council tax 2026: \$175\.50 for 2027-01-01/);
+  await t.run("item", "add", "iPhone 15");
+  await t.run("item", "add", "Size 4 nappies", "--qty", "40", "--min", "10");
+  await t.run("use", "iPhone", "15");
+  assert.equal(t.text(), "iPhone 15: 0 left");
+  await t.run("use", "size", "4", "nappies", "6");
+  assert.equal(t.text(), "Size 4 nappies: 34 left");
+  await t.run("buy", "iphone", "15", "2");
+  assert.equal(t.text(), "iPhone 15: now 2");
+  assert.equal(await t.run("count", "iphone", "15"), 2);           // a name with no count after it
+  assert.match(t.err[0]!, /usage: hearth count NAME N/);
+});
