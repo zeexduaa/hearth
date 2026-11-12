@@ -136,19 +136,33 @@ export function emptyData(home: string, currency = DEFAULT_SETTINGS.currency): D
            members: [], items: [], tasks: [], bills: [], attachments: [] };
 }
 
-/** Finds by exact name, then id or id prefix, then a unique part of the name. */
-export function pick<T extends { id: string; name: string }>(items: T[], query: string, what: string): T {
+/**
+ * Finds by exact name, then id or id prefix, then a unique part of the name. When several share
+ * a name (two chairs), the message lists each one's id, with ``detail`` (its location, say), so
+ * the right one can still be chosen.
+ */
+export function pick<T extends { id: string; name: string }>(items: T[], query: string, what: string,
+                                                              detail?: (t: T) => string | undefined): T {
   const q = query.trim().toLowerCase();
   if (!q) throw new DataError(`which ${what}?`);
-  const exact = items.filter((i) => i.name.toLowerCase() === q || i.id === q);
+  // An exact name wins, so an item called "cafe" isn't mistaken for an id starting "cafe".
+  const exact = items.filter((i) => i.name.toLowerCase() === q);
   if (exact.length === 1) return exact[0]!;
-  const partial = exact.length ? exact : items.filter((i) => i.name.toLowerCase().includes(q) || (q.length >= 4 && i.id.startsWith(q)));
+  const byId = items.filter((i) => i.id === q || (q.length >= 4 && i.id.startsWith(q)));
+  if (byId.length === 1) return byId[0]!;
+  const partial = exact.length ? exact : items.filter((i) => i.name.toLowerCase().includes(q));
   if (partial.length === 1) return partial[0]!;
   if (!partial.length) {
     const names = items.slice(0, 12).map((i) => i.name);
     throw new DataError(`no ${what} called "${query}"` + (names.length ? `; there are: ${names.join(", ")}${items.length > 12 ? ", ..." : ""}` : ""));
   }
-  throw new DataError(`"${query}" matches ${partial.slice(0, 8).map((i) => i.name).join(", ")}${partial.length > 8 ? ", ..." : ""}; be more specific`);
+  const label = (i: T) => {
+    const extra = detail?.(i);
+    return `${i.name} [${i.id}]${extra ? ` ${extra}` : ""}`;
+  };
+  const sameName = partial.every((i) => i.name.toLowerCase() === partial[0]!.name.toLowerCase());
+  throw new DataError(`"${query}" matches ${partial.slice(0, 8).map(label).join(", ")}${partial.length > 8 ? ", ..." : ""}; ` +
+                      (sameName ? "use the id in brackets instead of the name" : "be more specific, or use the id in brackets"));
 }
 
 export function cleanTags(tags: string[]): string[] {

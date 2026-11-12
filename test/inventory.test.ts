@@ -93,3 +93,15 @@ test("the store round-trips, keeps a backup and refuses strangers", () => {
   assert.throws(() => store.load(join(dir, "none.json")), /hearth init/);
   assert.equal(store.filesDir(path), join(dir, "hearth-files"));
 });
+
+test("two items with the same name can still be told apart", () => {
+  const data = emptyData("Home");
+  const kitchen = inv.addItem(data, { name: "Chair", location: "Kitchen" }, TODAY);
+  const study = inv.addItem(data, { name: "Chair", location: "Study" }, TODAY);
+  assert.throws(() => inv.findItem(data, "chair"),
+    new RegExp(`Chair \\[${kitchen.id}\\] in Kitchen, Chair \\[${study.id}\\] in Study; use the id in brackets`));
+  assert.equal(inv.findItem(data, study.id), study);
+  // A name that happens to look like an id still finds the item by name.
+  const cafe = inv.addItem(data, { name: kitchen.id.slice(0, 4) }, TODAY);
+  assert.equal(inv.findItem(data, kitchen.id.slice(0, 4)), cafe);
+});

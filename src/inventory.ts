@@ -45,7 +45,7 @@ export function current(data: Data): Item[] {
 }
 
 export function findItem(data: Data, query: string, includeDisposed = false): Item {
-  return pick(includeDisposed ? data.items : current(data), query, "item");
+  return pick(includeDisposed ? data.items : current(data), query, "item", (i) => (i.location ? `in ${i.location}` : undefined));
 }
 
 export function addItem(data: Data, input: ItemInput, today: LocalDate): Item {

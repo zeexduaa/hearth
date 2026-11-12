@@ -185,6 +185,7 @@ const item: Record<string, Handler> = {
     const line = (label: string, value: string | undefined) => value && s.ctx.out(`  ${(label + ":").padEnd(11)}${value}`);
     s.ctx.out(target.name + (target.disposed ? `  (gone ${target.disposed.date}${target.disposed.reason ? `: ${target.disposed.reason}` : ""})` : ""));
     line("where", target.location);
+    line("id", target.id);
     line("category", target.category);
     line("make", [target.brand, target.model].filter(Boolean).join(" "));
     line("serial", target.serial);
