@@ -68,8 +68,25 @@ export function inventory(data: Data, today: LocalDate): Inventory {
     title: `Home inventory: ${data.home}`, date: today, rooms, items: items.length,
     total: formatTotals(totals(items.map(itemValue))),
     missingPrice: items.filter((i) => !i.price).length,
-    missingSerial: items.filter((i) => !i.serial && (i.price?.cents ?? 0) >= 10000).length,
+    missingSerial: items.filter((i) => !i.serial && i.price && isValuable(i.price)).length,
   };
+}
+
+/**
+ * Roughly 100 US dollars or more in the item's currency: worth a serial number for a claim.
+ * A flat "100" flagged a 3,500-rupee kettle (about $12) as valuable. These are deliberately
+ * rough round numbers, not exchange rates; other currencies use 100.
+ */
+const VALUABLE: Record<string, number> = {
+  USD: 100, EUR: 100, GBP: 80, CAD: 130, AUD: 150, NZD: 160, CHF: 90, JPY: 15_000, CNY: 700, INR: 8_000, PKR: 25_000,
+  BDT: 12_000, LKR: 30_000, NPR: 13_000, AED: 350, SAR: 375, QAR: 350, KWD: 30, TRY: 3_000, EGP: 5_000, NGN: 150_000,
+  KES: 13_000, ZAR: 1_800, BRL: 500, MXN: 1_700, IDR: 1_500_000, MYR: 450, PHP: 5_500, THB: 3_500, VND: 2_500_000,
+  KRW: 130_000, SEK: 1_000, NOK: 1_000, DKK: 700, PLN: 400,
+};
+
+export function isValuable(price: Money): boolean {
+  const places = ["JPY", "KRW", "VND", "CLP", "ISK"].includes(price.currency) ? 0 : 2;
+  return price.cents >= (VALUABLE[price.currency] ?? 100) * 10 ** places;
 }
 
 export function escapeHtml(text: string): string {
@@ -88,7 +105,7 @@ ${r.rows.map(({ item, value, receipts, warranty }) => `<tr><td>${e(item.name)}${
   `<td>${e(warranty)}</td><td class="n">${receipts || ""}</td></tr>`).join("\n")}
 </tbody></table></section>`).join("\n");
   const gaps = [inv.missingPrice ? `${inv.missingPrice} item(s) have no price` : "",
-                inv.missingSerial ? `${inv.missingSerial} item(s) worth 100 or more have no serial number` : ""].filter(Boolean);
+                inv.missingSerial ? `${inv.missingSerial} valuable item(s) have no serial number` : ""].filter(Boolean);
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${e(inv.title)}</title>

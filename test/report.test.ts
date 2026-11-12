@@ -77,3 +77,14 @@ test("the dashboard gathers what needs attention", () => {
   assert.equal(dashboard.isQuiet(d), false);
   assert.equal(dashboard.isQuiet(dashboard.build(emptyData("x"), TODAY)), true);
 });
+
+test("'valuable' depends on the currency", () => {
+  const data = emptyData("Ghar", "PKR");
+  inv.addItem(data, { name: "Kettle", price: parseMoney("3500", "PKR") }, TODAY);        // about $12
+  inv.addItem(data, { name: "Fridge", price: parseMoney("185000", "PKR") }, TODAY);      // about $650
+  assert.equal(report.inventory(data, TODAY).missingSerial, 1);
+  assert.equal(report.isValuable(usd("99.99")), false);
+  assert.equal(report.isValuable(usd("100")), true);
+  assert.equal(report.isValuable(parseMoney("20000 JPY", "USD")), true);
+  assert.equal(report.isValuable(parseMoney("250 XYZ", "USD")), true);                   // unknown currencies use 100
+});
