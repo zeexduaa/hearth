@@ -61,6 +61,12 @@ export function formatMoney(m: Money): string {
   return negative ? `-${body}` : body;
 }
 
+/** The number alone with the currency's decimal places, for CSV: "1234.50", "5000" for JPY. */
+export function plainAmount(m: Money): string {
+  const places = decimals(m.currency);
+  return places ? (m.cents / 10 ** places).toFixed(places) : String(m.cents);
+}
+
 /** Totals per currency, in a stable order. */
 export function totals(amounts: Iterable<Money | undefined>): Money[] {
   const sums = new Map<string, number>();
