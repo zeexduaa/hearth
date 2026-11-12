@@ -19,7 +19,7 @@ test("after-done tasks are due one period after they were last done", () => {
 
 test("fixed tasks follow the calendar; missed weeks don't stack up", () => {
   const data = emptyData("Home");
-  const bins = tasks.addTask(data, { name: "Bins out", recurrence: parseRecurrence("weekly"), start: "2026-11-03", mode: "fixed" }, TODAY);
+  const bins = tasks.addTask(data, { name: "Bins out", recurrence: parseRecurrence("weekly"), start: "2026-11-03", mode: "fixed" }, "2026-11-01");
   assert.equal(tasks.nextDue(bins), "2026-11-03");
   // Missed the 3rd and the 10th; doing it on the 12th takes care of both.
   assert.equal(tasks.complete(bins, "2026-11-12").next, "2026-11-17");
@@ -35,7 +35,7 @@ test("chores rotate among the household", () => {
   const data = emptyData("Home");
   const [ali, sara, omar] = ["Ali", "Sara", "Omar"].map((n) => tasks.addMember(data, n));
   const dishes = tasks.addTask(data, { name: "Dishes", recurrence: parseRecurrence("daily"), start: "2026-11-10", mode: "fixed",
-                                       assignees: [ali!.id, sara!.id, omar!.id], rotate: true }, TODAY);
+                                       assignees: [ali!.id, sara!.id, omar!.id], rotate: true }, "2026-11-10");
   const turns: string[] = [];
   for (const day of ["2026-11-10", "2026-11-11", "2026-11-12", "2026-11-13"]) {
     turns.push(tasks.memberName(data, tasks.turn(dishes))!);
@@ -54,10 +54,18 @@ test("chores rotate among the household", () => {
 
 test("upcoming lists overdue first and leaves paused tasks out", () => {
   const data = emptyData("Home");
-  tasks.addTask(data, { name: "Smoke alarm test", recurrence: parseRecurrence("monthly"), start: "2026-11-01", mode: "fixed" }, TODAY);
+  tasks.addTask(data, { name: "Smoke alarm test", recurrence: parseRecurrence("monthly"), start: "2026-11-01", mode: "fixed" }, "2026-10-25");
   tasks.addTask(data, { name: "Clean gutters", recurrence: parseRecurrence("yearly in november"), start: "2026-11-20", mode: "fixed" }, TODAY);
   tasks.addTask(data, { name: "Descale kettle", recurrence: parseRecurrence("every 2 months"), start: "2027-01-01" }, TODAY);
   const paused = tasks.addTask(data, { name: "Water garden", recurrence: parseRecurrence("daily"), start: "2026-11-01" }, TODAY);
   paused.paused = true;
   assert.deepEqual(tasks.upcoming(data, TODAY, 14).map((s) => [s.task.name, s.daysLeft]), [["Smoke alarm test", -11], ["Clean gutters", 8]]);
+});
+
+
+test("a fixed task added today isn't overdue for the months before it was added", () => {
+  const data = emptyData("Home");
+  const alarms = tasks.addTask(data, { name: "Test smoke alarms", recurrence: parseRecurrence("monthly on the 1st"), start: "2026-01-01",
+                                       mode: "fixed" }, TODAY);
+  assert.equal(tasks.nextDue(alarms), "2026-12-01");
 });

@@ -56,7 +56,8 @@ function lastCompletion(task: Task): Completion | undefined {
 export function nextDue(task: Task): LocalDate {
   const last = lastCompletion(task);
   if (task.mode === "after-done") return last ? after(task.recurrence, last.date) : task.start;
-  if (!last) return nextOnOrAfter(task.recurrence, task.start, task.start);
+  // Calendar dates from before the task was added weren't missed: hearth didn't know about them.
+  if (!last) return nextOnOrAfter(task.recurrence, task.start, compare(task.created, task.start) > 0 ? task.created : task.start);
   return nextOnOrAfter(task.recurrence, task.start, addDays(last.due ?? last.date, 1));
 }
 
