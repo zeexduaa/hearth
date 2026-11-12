@@ -1,0 +1,21 @@
+{
+  "name": "hearth",
+  "version": "0.1.0",
+  "description": "A private home and household manager: belongings, warranties, maintenance, chores, bills and an insurance inventory.",
+  "license": "MIT",
+  "author": "Syed Ali",
+  "type": "module",
+  "bin": { "hearth": "dist/src/main.js" },
+  "files": ["dist/src"],
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "build": "tsc -p .",
+    "prepare": "tsc -p .",
+    "test": "tsc -p . && node scripts/test.mjs",
+    "start": "node dist/src/main.js"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.6.0"
+  }
+}
