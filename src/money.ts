@@ -30,7 +30,7 @@ export function parseMoney(text: string, defaultCurrency: string): Money {
     t = t.replace(code[0], "").trim();
   }
   for (const [symbol, iso] of Object.entries(SYMBOLS)) {
-    if (t.startsWith(symbol)) {
+    if (t.toLowerCase().startsWith(symbol.toLowerCase())) {         // "Rs 2500" and "rs 2500"
       currency ??= iso;
       t = t.slice(symbol.length).trim();
       break;
@@ -39,6 +39,7 @@ export function parseMoney(text: string, defaultCurrency: string): Money {
   currency ??= defaultCurrency.toUpperCase();
   const negative = t.startsWith("-");
   if (negative) t = t.slice(1).trim();
+  if (t.startsWith(".")) t = "0" + t;                                // "$.99"
   if (!/^(\d{1,3}(,\d{3})+|\d+)(\.\d+)?$/.test(t)) {
     throw new MoneyError(`"${text}" isn't an amount; type it like 12.50, $12.50 or 1,234.56 EUR`);
   }

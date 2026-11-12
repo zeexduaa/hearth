@@ -70,6 +70,8 @@ test("money is exact and per currency", () => {
   assert.deepEqual(money.parseMoney("€30", "USD"), { cents: 3000, currency: "EUR" });
   assert.deepEqual(money.parseMoney("Rs 2500", "USD"), { cents: 250000, currency: "PKR" });
   assert.deepEqual(money.parseMoney("5000 JPY", "USD"), { cents: 5000, currency: "JPY" });
+  assert.deepEqual(money.parseMoney("$.99", "USD"), { cents: 99, currency: "USD" });
+  assert.deepEqual(money.parseMoney("rs 2500", "USD"), { cents: 250000, currency: "PKR" });
   assert.throws(() => money.parseMoney("12.345", "USD"), /2 decimal places/);
   assert.throws(() => money.parseMoney("twelve", "USD"), /isn't an amount/);
   assert.throws(() => money.parseMoney("1,23.4", "USD"), /isn't an amount/);
