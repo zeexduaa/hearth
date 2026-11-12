@@ -93,3 +93,14 @@ test("the next due date skips ones already paid", () => {
   bills.pay(rent, { paid: "2026-11-12" });                       // paid early
   assert.equal(bills.nextDue(rent, "2026-11-12"), "2027-01-01");
 });
+
+
+test("undo takes back the payment entered last, even if it's for an older due date", () => {
+  const data = emptyData("Home");
+  const water = bills.addBill(data, { name: "Water", recurrence: parseRecurrence("monthly on the 5th"), start: "2026-10-05",
+                                      amount: usd("40") }, "2026-09-01");
+  bills.pay(water, { paid: "2026-11-10", due: "2026-11-05" });
+  bills.pay(water, { paid: "2026-10-06", due: "2026-10-05" });     // October's, entered afterwards
+  assert.equal(bills.undoPayment(water).due, "2026-10-05");
+  assert.deepEqual(water.payments.map((p) => p.due), ["2026-11-05"]);
+});

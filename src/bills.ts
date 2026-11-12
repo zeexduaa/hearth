@@ -104,16 +104,15 @@ export function pay(bill: Bill, options: PayOptions, lookaheadDays = 45): Paymen
   if (amount.cents <= 0) throw new DataError("the amount must be more than 0");
   const payment: Payment = { due, paid: options.paid, amount };
   if (options.note) payment.note = options.note;
-  bill.payments.push(payment);
-  bill.payments.sort((a, b) => compare(a.due, b.due));
+  bill.payments.push(payment);          // kept in the order entered, so undo takes back the last one
   return payment;
 }
 
+/** Removes the payment entered last (not the latest by date: a late-entered old payment is the one to take back). */
 export function undoPayment(bill: Bill): Payment {
-  const latest = [...bill.payments].sort((a, b) => compare(a.paid, b.paid)).at(-1);
-  if (!latest) throw new DataError(`no payments are recorded for ${bill.name}`);
-  bill.payments.splice(bill.payments.indexOf(latest), 1);
-  return latest;
+  const last = bill.payments.pop();
+  if (!last) throw new DataError(`no payments are recorded for ${bill.name}`);
+  return last;
 }
 
 /** The next due date from ``today`` on that isn't paid yet (paying early moves it on). */

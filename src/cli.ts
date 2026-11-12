@@ -285,7 +285,7 @@ const bill: Record<string, Handler> = {
               `${b.amount ? `, usually ${formatMoney(b.amount)}` : ""}${b.autopay ? ", autopay" : ""}${b.end ? `, until ${b.end}` : ""}`);
     const next = bills.nextDue(b, s.today);
     if (next) s.ctx.out(`  next due ${next} (${relative(next, s.today)})`);
-    for (const p of [...b.payments].reverse().slice(0, 12)) {
+    for (const p of [...b.payments].sort((x, y) => compare(y.due, x.due)).slice(0, 12)) {
       s.ctx.out(`  ${p.paid}  ${formatMoney(p.amount).padStart(12)}  for ${p.due}${p.note ? `  (${p.note})` : ""}`);
     }
     if (b.payments.length) s.ctx.out(`  total paid: ${formatTotals(totals(b.payments.map((p) => p.amount)))} over ${b.payments.length} payment(s)`);
