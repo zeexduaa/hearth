@@ -116,8 +116,11 @@ export function undoPayment(bill: Bill): Payment {
   return latest;
 }
 
+/** The next due date from ``today`` on that isn't paid yet (paying early moves it on). */
 export function nextDue(bill: Bill, today: LocalDate): LocalDate | undefined {
-  const next = nextOnOrAfter(bill.recurrence, bill.start, compare(today, bill.start) > 0 ? today : bill.start);
+  const paid = paidDues(bill);
+  let next = nextOnOrAfter(bill.recurrence, bill.start, compare(today, bill.start) > 0 ? today : bill.start);
+  for (let guard = 0; paid.has(next) && guard < 1000; guard++) next = nextOnOrAfter(bill.recurrence, bill.start, addDays(next, 1));
   return bill.end && compare(next, bill.end) > 0 ? undefined : next;
 }
 

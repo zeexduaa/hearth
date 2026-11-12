@@ -83,3 +83,13 @@ test("attachments are copied, de-duplicated and checked", () => {
   assert.equal(att.safeName("..."), "file");
   assert.throws(() => att.attach(data, files, join(dir, "nope.pdf"), "2026-11-12"), /can't read/);
 });
+
+
+test("the next due date skips ones already paid", () => {
+  const data = emptyData("Home");
+  const rent = bills.addBill(data, { name: "Rent", recurrence: parseRecurrence("monthly on the 1st"), start: "2026-12-01",
+                                     amount: usd("1450") }, "2026-11-12");
+  assert.equal(bills.nextDue(rent, "2026-11-12"), "2026-12-01");
+  bills.pay(rent, { paid: "2026-11-12" });                       // paid early
+  assert.equal(bills.nextDue(rent, "2026-11-12"), "2027-01-01");
+});
