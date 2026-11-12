@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        node: ["20", "22"]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: ${{ matrix.node }}
+      - run: npm install
+      - run: npm test
+      - name: The installed command runs (as people will run it)
+        shell: bash
+        run: |
+          npm install -g .
+          test "$(hearth --version)" = "hearth 0.1.0"
+          export HEARTH_FILE="$RUNNER_TEMP/hearth.json"
+          hearth init --home CI
+          hearth item add Kettle --in Kitchen --price 25
+          hearth items | grep -q "Kettle"
+          hearth bill add Rent --every "monthly on the 1st" --amount 1000
+          hearth bills | grep -q "a month"
