@@ -46,7 +46,9 @@ export interface Item {
 }
 
 export interface Completion {
-  date: LocalDate;
+  date: LocalDate;          // when it was done
+  due?: LocalDate;          // the due date it took care of (fixed tasks)
+  skipped?: boolean;        // passed over on purpose (not done)
   by?: string;              // member id
   cost?: Money;
   note?: string;
